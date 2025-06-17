@@ -25,7 +25,7 @@ data:
           network: {}
           disk: {}
           load: {}
-          filesystem: {}
+          # filesystem: {}
 
     processors:
       batch: {}
@@ -46,12 +46,6 @@ data:
       # → New Loki exporter
       loki:
         endpoint: http://loki:3100/loki/api/v1/push
-        # attach these labels to every log for easy querying
-        labels:
-          service:       "service.name"
-          severity:      "severity_text"
-          container:     "k8s.container.name"
-          namespace:     "k8s.namespace.name"
 
     service:
       pipelines:

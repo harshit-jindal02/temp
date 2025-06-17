@@ -13,29 +13,44 @@ spec:
       labels:
         app: traceassist-backend
     spec:
+      serviceAccountName: traceassist-sa
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
       containers:
         - name: backend
-          image: traceassist-backend:latest         # ← adjust if your image path/tag differs
+          image: traceassist-backend:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: dockersock
+              mountPath: /var/run/docker.sock
           ports:
-            - containerPort: 8000                   # ← your FastAPI port
+            - containerPort: 8000
           env:
-            # ─── existing OpenAI & SigNoz vars ───────────────────
             - name: OPENAI_API_KEY
-              value: "<YOUR_OPENAI_API_KEY>"
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: OPENAI_API_KEY
+            - name: PAT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: PAT_TOKEN
+
             - name: SIGNOZ_CLOUD_ENDPOINT
               value: "ingest.in.signoz.cloud:4317"
             - name: SIGNOZ_CLOUD_API_KEY
               value: "<YOUR_SIGNOZ_API_KEY>"
 
-            # ─── hard-coded Loki & Jira settings ───────────────────
             - name: LOKI_ENDPOINT
               value: "http://loki.traceassist.svc.cluster.local:3100"
             - name: JIRA_BASE_URL
-              value: "https://your-domain.atlassian.net"
+              value: "https://harshitjindal02.atlassian.net"
             - name: JIRA_PROJECT_KEY
               value: "TRACE"
-
-            # ─── Jira email & token from Secret ───────────────────
             - name: JIRA_USER_EMAIL
               valueFrom:
                 secretKeyRef:
