@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traceassist-backend
+  namespace: traceassist
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traceassist-backend
+  template:
+    metadata:
+      labels:
+        app: traceassist-backend
+    spec:
+      containers:
+        - name: backend
+          image: traceassist-backend:latest         # ← adjust if your image path/tag differs
+          ports:
+            - containerPort: 8000                   # ← your FastAPI port
+          env:
+            # ─── existing OpenAI & SigNoz vars ───────────────────
+            - name: OPENAI_API_KEY
+              value: "<YOUR_OPENAI_API_KEY>"
+            - name: SIGNOZ_CLOUD_ENDPOINT
+              value: "ingest.in.signoz.cloud:4317"
+            - name: SIGNOZ_CLOUD_API_KEY
+              value: "<YOUR_SIGNOZ_API_KEY>"
+
+            # ─── hard-coded Loki & Jira settings ───────────────────
+            - name: LOKI_ENDPOINT
+              value: "http://loki.traceassist.svc.cluster.local:3100"
+            - name: JIRA_BASE_URL
+              value: "https://your-domain.atlassian.net"
+            - name: JIRA_PROJECT_KEY
+              value: "TRACE"
+
+            # ─── Jira email & token from Secret ───────────────────
+            - name: JIRA_USER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: jira_user_email
+            - name: JIRA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: jira_api_token

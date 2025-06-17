@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traceassist-ai-agent
+  namespace: traceassist
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traceassist-ai-agent
+  template:
+    metadata:
+      labels:
+        app: traceassist-ai-agent
+      annotations:
+        instrumentation.opentelemetry.io/inject: "true"
+    spec:
+      serviceAccountName: traceassist-sa
+      containers:
+        - name: traceassist-ai-agent
+          image: traceassist-ai-agent:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-agent-secret
+                  key: OPENAI_API_KEY
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "https://ingest.in.signoz.cloud:4317"
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              value: "Authorization=Bearer e9bfcba0-a5a1-4d45-b2d5-38d332625ac8"
+          ports:
+            - containerPort: 8200

@@ -1,0 +1,100 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: traceassist-collector
+  namespace: traceassist
+spec:
+  # Run one collector per node so we can scrape hostmetrics on every node
+  mode: daemonset
+
+  # Allow scheduling on master if necessary (Minikube single-node)
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+
+  # ─── Mount host directories for logs & Docker socket ──────────────────────────
+  volumes:
+    # Tail Docker container JSON logs
+    - name: docker-logs
+      hostPath:
+        path: /var/lib/docker/containers
+        type: DirectoryOrCreate
+
+    # Optional: tail the plain pod logs directory if present
+    - name: pod-logs
+      hostPath:
+        path: /var/log/pods
+        type: DirectoryOrCreate
+
+    # Expose Docker socket so hostmetrics can gather certain stats
+    - name: dockersock
+      hostPath:
+        path: /var/run/docker.sock
+        type: Socket
+
+  volumeMounts:
+    - name: docker-logs
+      mountPath: /var/lib/docker/containers
+      readOnly: true
+    - name: pod-logs
+      mountPath: /var/log/pods
+      readOnly: true
+    - name: dockersock
+      mountPath: /var/run/docker.sock
+      readOnly: true
+
+  config:
+    receivers:
+      # 1️⃣ OTLP for traces & app-sent metrics
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+
+      # 2️⃣ filelog to tail container logs
+      filelog:
+        include:
+          - /var/lib/docker/containers/*/*.log     # Docker JSON logs
+          - /var/log/pods/**/*.log                 # pod logs if present
+        start_at: beginning
+        include_file_name: true
+
+      # 3️⃣ hostmetrics to capture CPU, memory, disk, network, load
+      hostmetrics:
+        collection_interval: 30s
+        scrapers:
+          cpu: {}
+          memory: {}
+          filesystem: {}
+          network: {}
+          load: {}
+
+    processors:
+      batch: {}
+
+    exporters:
+      # Send everything to SigNoz Cloud via OTLP
+      otlp:
+        endpoint: https://ingest.in.signoz.cloud:4317
+        tls:
+          insecure: false
+        headers:
+          signoz-ingestion-key: "e9bfcba0-a5a1-4d45-b2d5-38d332625ac8"
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlp]
+
+        metrics:
+          # includes both your app-emitted metrics and hostmetrics
+          receivers: [otlp, hostmetrics]
+          processors: [batch]
+          exporters: [otlp]
+
+        logs:
+          receivers: [filelog]
+          processors: [batch]
+          exporters: [otlp]

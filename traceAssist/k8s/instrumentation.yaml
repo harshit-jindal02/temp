@@ -1,0 +1,28 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: traceassist-instrumentation
+  namespace: traceassist
+spec:
+  # ── where auto-instrumented workloads will send OTLP data ────────────────
+  exporter:
+    endpoint: http://otel-collector.traceassist.svc.cluster.local:4317
+
+  # ── context propagation formats ──────────────────────────────────────────
+  propagators:
+    - tracecontext
+    - baggage
+    - b3
+
+  # ── sample 100% of traces (adjust ratio as needed) ───────────────────────
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1.0"
+
+  # ── language-specific auto-instrumentation images ────────────────────────
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:latest
+  nodejs:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-nodejs:latest
+  python:
+    image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:latest

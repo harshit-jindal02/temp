@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: traceassist
+data:
+  otel-collector-config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+
+      filelog:
+        include:
+          - /var/lib/docker/containers/*/*.log
+        start_at: beginning
+        include_file_name: true
+
+      hostmetrics:
+        collection_interval: 30s
+        scrapers:
+          cpu: {}
+          memory: {}
+          network: {}
+          disk: {}
+          load: {}
+          filesystem: {}
+
+    processors:
+      batch: {}
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 4000
+        spike_limit_mib: 500
+
+    exporters:
+      # → SigNoz OTLP exporter (unchanged)
+      otlp:
+        endpoint: https://ingest.in.signoz.cloud:4317
+        tls:
+          insecure: false
+        headers:
+          signoz-ingestion-key: "e9bfcba0-a5a1-4d45-b2d5-38d332625ac8"
+
+      # → New Loki exporter
+      loki:
+        endpoint: http://loki:3100/loki/api/v1/push
+        # attach these labels to every log for easy querying
+        labels:
+          service:       "service.name"
+          severity:      "severity_text"
+          container:     "k8s.container.name"
+          namespace:     "k8s.namespace.name"
+
+    service:
+      pipelines:
+        traces:
+          receivers:  [otlp]
+          processors: [batch, memory_limiter]
+          exporters:  [otlp]
+
+        metrics:
+          receivers:  [otlp, hostmetrics]
+          processors: [batch, memory_limiter]
+          exporters:  [otlp]
+
+        logs:
+          receivers:  [filelog]
+          processors: [batch, memory_limiter]
+          # send logs to BOTH SigNoz (otlp) AND Loki
+          exporters:  [otlp, loki]

@@ -1,0 +1,57 @@
+# k8s/otel-collector-daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: traceassist-collector
+  namespace: traceassist
+spec:
+  selector:
+    matchLabels:
+      app: traceassist-collector
+  template:
+    metadata:
+      labels:
+        app: traceassist-collector
+    spec:
+      serviceAccountName: traceassist-sa
+
+      # Run as root so we can read hostPath logs
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+
+      # Needed for hostmetrics scrapers
+      hostPID: true
+      hostIPC: true
+
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+        - name: docker-logs
+          hostPath:
+            path: /var/lib/docker/containers
+            type: DirectoryOrCreate
+        - name: dockersock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.119.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          command:
+            - "/otelcol-contrib"
+            - "--config=/conf/otel-collector-config"
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+            - name: docker-logs
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: dockersock
+              mountPath: /var/run/docker.sock
+              readOnly: true

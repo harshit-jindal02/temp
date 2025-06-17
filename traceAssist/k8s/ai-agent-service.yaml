@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: traceassist-ai-agent
+  namespace: traceassist
+spec:
+  selector:
+    app: traceassist-ai-agent
+  ports:
+    - port: 8200
+      targetPort: 8200
+      name: http
+  type: ClusterIP

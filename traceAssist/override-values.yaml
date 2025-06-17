@@ -1,0 +1,12 @@
+global:
+  cloud: others
+  clusterName: minikube
+  deploymentEnvironment: staging
+otelCollectorEndpoint: ingest.in.signoz.cloud:443
+otelInsecure: false
+signozApiKey: e9bfcba0-a5a1-4d45-b2d5-38d332625ac8
+presets:
+  otlpExporter:
+    enabled: true
+  loggingExporter:
+    enabled: false
