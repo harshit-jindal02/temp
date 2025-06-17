@@ -40,10 +40,10 @@ spec:
                   name: backend-secret
                   key: PAT_TOKEN
 
-            - name: SIGNOZ_CLOUD_ENDPOINT
-              value: "ingest.in.signoz.cloud:4317"
-            - name: SIGNOZ_CLOUD_API_KEY
-              value: "<YOUR_SIGNOZ_API_KEY>"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "https://ingest.in.signoz.cloud:4317"
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              value: "Authorization=Bearer e9bfcba0-a5a1-4d45-b2d5-38d332625ac8"
 
             - name: LOKI_ENDPOINT
               value: "http://loki.traceassist.svc.cluster.local:3100"
